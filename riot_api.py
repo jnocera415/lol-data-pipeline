@@ -16,8 +16,6 @@ def api_request(url):
             cooldown = int(resp.headers.get("Retry-After", 10))
             print('Cooling Down for ' + str(cooldown) + ' seconds.')
             
-            
-            
             time.sleep(cooldown)
             
             print('Done cooldown!')
@@ -91,32 +89,11 @@ def fetch_puuid(api_key, gamename, tagline):
     
     return user_puuid
 
-def fetch_matchids(api_key, puuid, entire = False):
-    
-    matchids = []
-    start = 0
-
-    if entire:
-
-        count = 100
-    
-    else: 
-
-        count = 20
-    
-    while True:
+def fetch_matchids(api_key, puuid, start = 0, count = 20):
         
-        matchid_url = 'https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/' + puuid + '/ids?start=' + str(start) + '&count=' + str(count) + '&api_key=' + api_key
-        current_matchids = api_request(matchid_url)
+    matchid_url = 'https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/' + puuid + '/ids?start=' + str(start) + '&count=' + str(count) + '&api_key=' + api_key
+    matchids = api_request(matchid_url)
 
-        if current_matchids:
-
-            matchids = matchids + list(current_matchids)
-            start += count
-        
-        if not current_matchids or not entire:
-            break
-            
     return matchids
 
 def fetch_match_data(matchid, api_key):
