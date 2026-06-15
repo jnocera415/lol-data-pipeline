@@ -119,7 +119,6 @@ def parse_match_tuples(match_data):
         match_data['gameVersion']
     )
 
-    
     player_tuples =[]
     participants_tuples = []
     item_tuples = []
@@ -139,12 +138,7 @@ def parse_match_tuples(match_data):
         )
         
         player_tuples.append(cleaned_player_tuple)
-
-        if match_data.get('gameMode') == 'STRAWBERRY':
-            
-            continue
     
-        
     #This Block of Code grabs the 'match_participants' data
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
@@ -164,16 +158,31 @@ def parse_match_tuples(match_data):
             participant_data['assists'],
             1 if participant_data['win'] == True else 0
         )
-        
+        if match_data['gameMode'] == 'STRAWBERRY':  
+            cleaned_participant_tuple = (
+            participantid,
+            participant_data['puuid'],
+            match_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            1 if participant_data['win'] == True else 0
+        )
         participants_tuples.append(cleaned_participant_tuple)
         
         #This Block of Code grabs the 'participant_items' data
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
+        if match_data['gameMode'] == 'STRAWBERRY':
+            continue
         for j in range(7):
-            
             if participant_data['item' + str(j)] != 0:
-                
-                item_tuples.append((participantid, participant_data['item' + str(j)], j))   
+                item_tuples.append((participantid, participant_data['item' + str(j)], j)) 
+        
+            item_tuples = []
     
     return match_tuple, player_tuples, participants_tuples, item_tuples

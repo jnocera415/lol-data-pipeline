@@ -1,6 +1,7 @@
 ﻿import pyodbc
 import re
 import time
+from datetime import datetime
 
 class database_pipeline:
     def __init__(self, driver, server, database, username, password):
@@ -199,23 +200,31 @@ class database_pipeline:
 
             CREATE TABLE #TempPlayers (
                 puuid VARCHAR(78) PRIMARY KEY,
-                gamename NVARCHAR(16),
+                gamename NVARCHAR(23),
                 tagline NVARCHAR(5),
-                track_history BIT
+                track_history BIT,
+                last_date_processed DATE
             )
             """
             cursor.execute(insert_first_query)
 
-            insert_temp_query = "INSERT INTO #TempPlayers (puuid, gamename, tagline, track_history) VALUES (?, ?, ?, ?)"
-            formatted_data = list({p[0]: p for p in player_tuples}.values())
+            insert_temp_query = "INSERT INTO #TempPlayers (puuid, gamename, tagline, track_history, last_date_processed) VALUES (?, ?, ?, ?, ?)"
+            formatted_data = list({p[0]: p + (None,) for p in player_tuples}.values())
             cursor.executemany(insert_temp_query, formatted_data)
 
             insert_final_query = """
-            INSERT INTO PLAYERS (puuid, gamename, tagline, track_history)
-            SELECT t.puuid, t.gamename, t.tagline, t.track_history
-            FROM #TempPlayers t
-            LEFT JOIN PLAYERS p ON t.puuid = p.puuid
-            WHERE p.puuid IS NULL
+            MERGE PLAYERS AS target
+            USING #TempPlayers AS source
+            ON (target.puuid = source.puuid)
+
+            WHEN MATCHED AND (target.gamename <> source.gamename OR target.tagline <> source.tagline) THEN
+            UPDATE SET 
+            target.gamename = source.gamename,
+            target.tagline = source.tagline
+
+            WHEN NOT MATCHED THEN
+            INSERT (puuid, gamename, tagline, track_history, last_date_processed)
+            VALUES (source.puuid, source.gamename, source.tagline, source.track_history, source.last_date_processed);
             """
             cursor.execute(insert_final_query)
         except pyodbc.Error as e:
@@ -266,6 +275,26 @@ class database_pipeline:
                 cursor.close()
             except Exception:
                 pass
+    def get_puuid(self):
+        cursor = self.conn.cursor()
+        current_date = datetime.now()
+        try:
+            query = """
+            SELECT TOP 1 puuid FROM PLAYERS 
+            WHERE last_date_processed IS NULL
+            OR DATEDIFF(day, last_date_processed, ?) > 10
+            """
+            cursor.execute(query, (current_date,))
+            row = cursor.fetchone()
+            return row.puuid if row else None
+        except pyodbc.Error as e:
+            self.handle_error(e)
+            return None
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
 
     def get_match_ids_by_puuid(self, puuid):
         cursor = self.conn.cursor()
@@ -277,7 +306,16 @@ class database_pipeline:
             WHERE mp.puuid = ?
             """
             cursor.execute(query, puuid)
-            return [row.matchid for row in cursor.fetchall()]
+            matchids =  [row.matchid for row in cursor.fetchall()]
+            query = """
+            UPDATE PLAYERS
+            SET last_date_processed = ?
+            WHERE PUUID = ?
+            """
+            current_date = datetime.now()
+            cursor.execute(query, current_date, puuid)
+            self.commit()
+            return matchids
         except pyodbc.Error as e:
             self.handle_error(e)
             return []
@@ -288,6 +326,8 @@ class database_pipeline:
                 pass
 
     def upsert_match_participants_table(self, match_participant_tuples):
+        if not match_participant_tuples:
+            return
         cursor = self.conn.cursor()
         try:
             cursor.fast_executemany = True
@@ -311,7 +351,6 @@ class database_pipeline:
             )
             """
             cursor.execute(insert_first_query)
-
             insert_temp_query = """
             INSERT INTO #TempMatch_Participants (
                 participantid, puuid, matchid, championid, lane, gold_earned,
@@ -320,7 +359,6 @@ class database_pipeline:
             """
             formatted_data = list({mp[0]: mp for mp in match_participant_tuples}.values())
             cursor.executemany(insert_temp_query, formatted_data)
-
             insert_final_query = """
             INSERT INTO MATCH_PARTICIPANTS (
                 participantid, puuid, matchid, championid, lane, gold_earned,
@@ -343,6 +381,8 @@ class database_pipeline:
                 pass
 
     def upsert_participant_items_table(self, participant_item_tuples):
+        if not participant_item_tuples:
+            return
         cursor = self.conn.cursor()
         try:
             cursor.fast_executemany = True
@@ -373,6 +413,41 @@ class database_pipeline:
             WHERE pi.participantid IS NULL
             """
             cursor.execute(insert_final_query)
+        except pyodbc.Error as e:
+            self.handle_error(e)
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+    def update_player_as_tracked(self, puuid):
+        cursor = self.conn.cursor()
+        try:
+            query = """
+            UPDATE PLAYERS
+            SET track_history = 1
+            WHERE PUUID = ?
+            """
+            cursor.execute(query, puuid)
+            self.commit()
+        except pyodbc.Error as e:
+            self.handle_error(e)
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+    def update_player_processed_date(self, puuid):
+        cursor = self.conn.cursor()
+        try:
+            query = """
+            UPDATE PLAYERS
+            SET track_history = ?
+            WHERE PUUID = ?
+            """
+            current_date = datetime.datenow()
+            print(current_date)
+            cursor.execute(query, current_date, puuid)
         except pyodbc.Error as e:
             self.handle_error(e)
         finally:

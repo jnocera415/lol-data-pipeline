@@ -10,9 +10,10 @@ DROP TABLE IF EXISTS players;
 
 CREATE TABLE players (
   puuid varchar(78) PRIMARY KEY,
-  gamename nvarchar(16),
+  gamename nvarchar(23),
   tagline nvarchar(5),
-  track_history BIT
+  track_history BIT,
+  last_date_processed DATE
   );
   
 CREATE TABLE matches (

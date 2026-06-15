@@ -4,14 +4,6 @@ import database_pipeline
 import time
 import os
 
-load_dotenv()
-api_key = os.getenv("RIOT_API_KEY")
-driver = os.getenv("DB_DRIVER")
-server = os.getenv("DB_SERVER")
-database = os.getenv("DB_DATABASE")
-username = os.getenv("DB_USERNAME")
-password = os.getenv("DB_PASSWORD")
-
 def update_static_data():
     # Fetchs items and champions infomation (with respected tags) from riot and upserts into your database
     # Although labed "static", champoins could be add and item stats changed per game version
@@ -28,7 +20,7 @@ def update_static_data():
 
 def send_match_info(puuid, entire = False):
     game_count_position = 0
-    number_of_games_per_batch = 100 if entire else 0
+    number_of_games_per_batch = 100 if entire else 20
     matchids_in_database = my_pipeline.get_match_ids_by_puuid(puuid)
     while True:
         matchids = fetch_matchids(api_key, puuid, game_count_position, number_of_games_per_batch)
@@ -61,13 +53,23 @@ def send_match_info(puuid, entire = False):
         if not entire:
             break
 
-start_time = time.perf_counter()
+def send_entire_history(list_of_players):
+    for player in list_of_players:
+        puuid = fetch_puuid(api_key, player[0], player[1])
+        print(player[0])
+        send_match_info(puuid, True)
+        my_pipeline.update_player_as_tracked(puuid)
+
+load_dotenv()
+api_key = os.getenv("RIOT_API_KEY")
+driver = os.getenv("DB_DRIVER")
+server = os.getenv("DB_SERVER")
+database = os.getenv("DB_DATABASE")
+username = os.getenv("DB_USERNAME")
+password = os.getenv("DB_PASSWORD")
+
 my_pipeline = database_pipeline.database_pipeline(driver, server, database, username, password)
 my_pipeline.connect()
-update_static_data()
-
-puuid = fetch_puuid(api_key, 'Bloo', 'LoyUm')
-send_match_info(puuid, True)
 
 list_of_players = [('Papa Jonathan', '1337'),
                    ('Bloo', 'LoyUM'),
@@ -81,13 +83,9 @@ list_of_players = [('Papa Jonathan', '1337'),
                    ('MizterCoffee', 'NA1'),
                    ('Optimusbrown', '7674')]
 
-for player in list_of_players:
-    puuid = fetch_puuid(api_key, player[0], player[1])
-    print(player[0])
-    send_match_info(puuid, True)
+update_static_data()
+send_entire_history(list_of_players)
 
-end_time = time.perf_counter()
-time_delta = end_time - start_time
-
-print(f"It took {time_delta} seconds to run everthing")
-
+for i in range(50)
+    puuid = my_pipeline.get_puuid()
+    send_match_info(puuid)
