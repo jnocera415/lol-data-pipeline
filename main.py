@@ -85,7 +85,6 @@ list_of_players = [('Papa Jonathan', '1337'),
 
 update_static_data()
 send_entire_history(list_of_players)
-
-for i in range(50)
+for i in range(50):
     puuid = my_pipeline.get_puuid()
     send_match_info(puuid)
