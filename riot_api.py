@@ -1,5 +1,11 @@
 import requests 
 import time
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 def api_request(url):
     
@@ -8,22 +14,26 @@ def api_request(url):
         
         if resp.status_code == 200:
             return resp.json()
-            
+        
+        elif resp.status_code == 401:
+            logging.warning('Error 401: Bad Request')
+            return None
         elif resp.status_code == 429:
             
-            print('')
-            print('Attempt to request ' + str(url) + '\nand got an Error Code 429 (too many request).')
+            logging.warning('Error 429: API Recieved Too Many Requests')
             cooldown = int(resp.headers.get("Retry-After", 10))
-            print('Cooling Down for ' + str(cooldown) + ' seconds.')
+            logging.info('Cooling Down for ' + str(cooldown) + ' seconds.')
             
             time.sleep(cooldown)
             
-            print('Done cooldown!')
-            print('')
+            logging.info('Done cooldown!')
             continue 
-            
+        
+        elif resp.status_code == 503:
+                 logging.warning('')
+
         else:
-            print('Failed request. Error: '+ str(resp.status_code))
+            logging.error('Failed request. Error: '+ str(resp.status_code))
             return None
         
 def fetch_raw_champion_data():
@@ -181,8 +191,10 @@ def parse_match_tuples(match_data):
             continue
         for j in range(7):
             if participant_data['item' + str(j)] != 0:
-                item_tuples.append((participantid, participant_data['item' + str(j)], j)) 
-        
-            item_tuples = []
+                item_tuples.append(
+                    (participantid,
+                    participant_data['item' + str(j)],
+                    j)
+                )
     
     return match_tuple, player_tuples, participants_tuples, item_tuples

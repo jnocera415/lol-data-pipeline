@@ -1,7 +1,13 @@
 ﻿import pyodbc
 import re
 import time
+import logging
 from datetime import datetime
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 class database_pipeline:
     def __init__(self, driver, server, database, username, password):
@@ -17,15 +23,13 @@ class database_pipeline:
         error_explained = e.args[1] if len(e.args) > 1 else str(e)
         match error_code:
             case '08001':
-                print("Timeout Error. Waiting 10 seconds and trying again after")
+                logging.error("Timeout Error Connecting to the database. Waiting 10 seconds and trying again after")
                 time.sleep(10)
                 self.connect()
             case _:      
                 clean_message = re.sub(r"\[.*?\]", "", error_explained).strip()
                 clean_message = re.sub(r"\s*\(\d+\)\s*\(SQLExec.*\)", "", clean_message).strip()
-                print(f"Error code {error_code}")
-                print(clean_message)
-                print("")
+                logging.error(f"{error_code} {clean_message}" )
 
     def connect(self):
         connection_string = (
@@ -41,7 +45,7 @@ class database_pipeline:
         try:
             self.conn = pyodbc.connect(connection_string)
             self.connected = True
-            print("Successfully connected to the database.")
+            logging.info("Successfully connected to the database.")
         except pyodbc.Error as e:
             self.connected = False
             self.handle_error(e)
@@ -50,7 +54,7 @@ class database_pipeline:
         if self.connected:
             self.conn.close()
             self.connected = False
-            print("Database connection closed.")
+            logging.info("Database connection closed.")
 
     def upsert_items_table(self, item_tuples):
         cursor = self.conn.cursor()

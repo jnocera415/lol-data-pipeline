@@ -20,13 +20,13 @@ CREATE TABLE matches (
   matchid varchar(14) PRIMARY KEY,
   match_time bigint, 
   duration float,
-  gamemode varchar(20),
+  gamemode varchar(32),
   gameversion varchar(30)
   );
   
 CREATE TABLE champions (
   championid INT PRIMARY KEY,
-  champion_name varchar(50),
+  champion_name nvarchar(50),
   champion_title varchar(100)
   );
   

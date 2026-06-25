@@ -3,6 +3,13 @@ from dotenv import load_dotenv
 import database_pipeline    
 import time
 import os
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 def update_static_data():
     # Fetchs items and champions infomation (with respected tags) from riot and upserts into your database
@@ -42,13 +49,13 @@ def send_match_info(puuid, entire = False):
             batch_match_participant_tuples.extend(match_participant_tuples)
             batch_participant_item_tuples.extend(participant_item_tuples)
 
-        print(f"Atempting to send current batch of {len(batch_match_tuples)} matches to the database." )
+        logging.info(f"Atempting to send current batch of {len(batch_match_tuples)} matches to the database." )
         my_pipeline.upsert_players_table(batch_player_tuples)
         my_pipeline.upsert_matches_table(batch_match_tuples)
         my_pipeline.upsert_match_participants_table(batch_match_participant_tuples)
         my_pipeline.upsert_participant_items_table(batch_participant_item_tuples)
         my_pipeline.commit()
-        print('Batch sent!')
+        logging.info('Batch sent!')
         game_count_position += number_of_games_per_batch
         if not entire:
             break
@@ -56,7 +63,7 @@ def send_match_info(puuid, entire = False):
 def send_entire_history(list_of_players):
     for player in list_of_players:
         puuid = fetch_puuid(api_key, player[0], player[1])
-        print(player[0])
+        logging.info(f"Getting {player[0]}'s entire match history")
         send_match_info(puuid, True)
         my_pipeline.update_player_as_tracked(puuid)
 
@@ -70,6 +77,7 @@ password = os.getenv("DB_PASSWORD")
 
 my_pipeline = database_pipeline.database_pipeline(driver, server, database, username, password)
 my_pipeline.connect()
+update_static_data()
 
 list_of_players = [('Papa Jonathan', '1337'),
                    ('Bloo', 'LoyUM'),
@@ -85,6 +93,6 @@ list_of_players = [('Papa Jonathan', '1337'),
 
 update_static_data()
 send_entire_history(list_of_players)
-for i in range(50):
+for i in range(1):
     puuid = my_pipeline.get_puuid()
     send_match_info(puuid)
