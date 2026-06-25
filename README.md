@@ -57,3 +57,74 @@ python main.py
 - `requirements.txt` - Python dependencies
 - `Schema.sql` - Database schema
 - `Select.sql` - SQL queries
+
+### Entity Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    PLAYERS ||--o{ MATCH_PARTICIPANTS : "plays in"
+    MATCHES ||--o{ MATCH_PARTICIPANTS : "contains"
+    CHAMPIONS ||--o{ MATCH_PARTICIPANTS : "chosen in"
+    CHAMPIONS ||--o{ CHAMPION_TAGS : "categorized by"
+    ITEMS ||--o{ ITEM_TAGS : "categorized by"
+    ITEMS ||--o{ PARTICIPANT_ITEMS : "equipped in"
+    MATCH_PARTICIPANTS ||--o{ PARTICIPANT_ITEMS : "buys"
+
+    PLAYERS {
+        varchar puuid PK
+        nvarchar gamename
+        nvarchar tagline
+        bit track_history
+        date last_date_processed
+    }
+
+    MATCHES {
+        varchar matchid PK
+        bigint match_time
+        float duration
+        varchar gamemode
+        varchar gameversion
+    }
+
+    MATCH_PARTICIPANTS {
+        varchar matchid PK, FK
+        varchar puuid PK, FK
+        int championid FK
+        varchar lane
+        int gold_earned
+        int damage_dealt_to_champions
+        int total_healing
+        int kills
+        int deaths
+        int assists
+        bit win
+    }
+
+    CHAMPIONS {
+        int championid PK
+        nvarchar champion_name
+        nvarchar champion_title
+    }
+
+    CHAMPION_TAGS {
+        int championid FK
+        varchar champion_tag
+    }
+
+    ITEMS {
+        int itemid PK
+        nvarchar item_name
+        int gold_cost
+    }
+
+    ITEM_TAGS {
+        int itemid FK
+        varchar item_tag
+    }
+
+    PARTICIPANT_ITEMS {
+        varchar matchid FK
+        varchar puuid FK
+        int itemid FK
+        int item_slot
+    }
