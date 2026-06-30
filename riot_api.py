@@ -16,10 +16,9 @@ def api_request(url):
             return resp.json()
         
         elif resp.status_code == 401:
-            logging.warning('Error 401: Bad Request')
+            logging.warning('Error 401: Unauthroized Request')
             return None
         elif resp.status_code == 429:
-            
             logging.warning('Error 429: API Recieved Too Many Requests')
             cooldown = int(resp.headers.get("Retry-After", 10))
             logging.info('Cooling Down for ' + str(cooldown) + ' seconds.')
