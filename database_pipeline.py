@@ -43,7 +43,7 @@ class database_pipeline:
         )
 
         try:
-            self.conn = pyodbc.connect(connection_string)
+            self.conn = pyodbc.connect(connection_string, timeout=60)
             self.connected = True
             logging.info("Successfully connected to the database.")
         except pyodbc.Error as e:
