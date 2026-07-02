@@ -23,9 +23,19 @@ class database_pipeline:
         error_explained = e.args[1] if len(e.args) > 1 else str(e)
         match error_code:
             case '08001':
+                self.connected = False
                 logging.error("Timeout Error Connecting to the database. Waiting 10 seconds and trying again after")
                 time.sleep(10)
                 self.connect()
+            case 'HY000':
+                self.connected = False
+                retries = 5
+                for i in range(retries):
+                    logging.error(f"Database connection error. Retrying {i + 1}/{retries} after 10 seconds.")
+                    time.sleep(10)
+                    self.connect()
+                    if self.connected:
+                        break
             case _:      
                 clean_message = re.sub(r"\[.*?\]", "", error_explained).strip()
                 clean_message = re.sub(r"\s*\(\d+\)\s*\(SQLExec.*\)", "", clean_message).strip()
