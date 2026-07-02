@@ -26,22 +26,21 @@ class database_pipeline:
                 self.connected = False
                 logging.error("Timeout Error Connecting to the database. Waiting 10 seconds and trying again after")
                 time.sleep(10)
-                self.connect()
-            case 'HY000':
+                return True
+            case 'HY000' | '42000':
                 self.connected = False
-                retries = 5
-                for i in range(retries):
-                    logging.error(f"Database connection error. Retrying {i + 1}/{retries} after 10 seconds.")
-                    time.sleep(10)
-                    self.connect()
-                    if self.connected:
-                        break
+                logging.error(f"Database connection error. Retrying after 10 seconds.")
+                time.sleep(10)
+                return True 
             case _:      
                 clean_message = re.sub(r"\[.*?\]", "", error_explained).strip()
                 clean_message = re.sub(r"\s*\(\d+\)\s*\(SQLExec.*\)", "", clean_message).strip()
                 logging.error(f"{error_code} {clean_message}" )
+                return False
 
     def connect(self):
+        retries = 5
+        attempt = 0
         connection_string = (
             f"Driver={self.driver};"
             f"Server={self.server},1433;"
@@ -51,14 +50,19 @@ class database_pipeline:
             f"Encrypt=yes;"
             f"TrustServerCertificate=no;"
         )
-
-        try:
-            self.conn = pyodbc.connect(connection_string, timeout=60)
-            self.connected = True
-            logging.info("Successfully connected to the database.")
-        except pyodbc.Error as e:
-            self.connected = False
-            self.handle_error(e)
+        while attempt < retries:
+            try:
+                self.conn = pyodbc.connect(connection_string, timeout=60)
+                self.connected = True
+                logging.info("Successfully connected to the database.")
+                return
+            except pyodbc.Error as e:
+                self.connected = False
+                if not self.handle_error(e):
+                    break
+            attempt += 1
+            logging.info(f"Retrying connection... Attempt {attempt}/{retries}")
+        logging.error("Failed to connect to the database after multiple attempts.")
 
     def disconnect(self):
         if self.connected:
