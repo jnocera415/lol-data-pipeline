@@ -81,6 +81,7 @@ def parse_queue_tuples(raw_queue_data):
         
         cleaned_queue_data.append((queueid, map_name, queue_name))
     
+    cleaned_queue_data.append((1750, 'Rings of Wrath', 'Arena'))
     return cleaned_queue_data
 
 def fetch_item_data():
