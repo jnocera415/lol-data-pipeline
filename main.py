@@ -19,11 +19,14 @@ def update_static_data():
     champion_tuples, champion_tag_tuples = parse_champion_tuples(raw_champion_data)
     raw_item_data = fetch_item_data()
     item_tuples, item_tag_tuples = parse_item_tuples(raw_item_data)
+    raw_queue_data = fetch_queue_ids()
+    queue_tuples = parse_queue_tuples(raw_queue_data)
 
     my_pipeline.upsert_items_table(item_tuples)
     my_pipeline.upsert_item_tags_table(item_tag_tuples)
     my_pipeline.upsert_champions_table(champion_tuples)
     my_pipeline.upsert_champion_tags_table(champion_tag_tuples)
+    my_pipeline.upsert_queue_ids_table(queue_tuples)
     my_pipeline.commit()
 
 def send_match_info(puuid, entire = False):
@@ -99,6 +102,6 @@ list_of_players = [('Papa Jonathan', '1337'),
 update_static_data()
 send_entire_history(list_of_players)
 
-for i in range(10):
+while True:
     puuid = my_pipeline.get_puuid()
     send_match_info(puuid)

@@ -63,6 +63,26 @@ def parse_champion_tuples(raw_champion_data):
     
     return cleaned_champion_data, cleaned_champion_tags
 
+def fetch_queue_ids():
+    """Fetch the current queue IDs and names from Riot's API."""
+    queue_url = "https://static.developer.riotgames.com/docs/lol/queues.json"
+    queue_data = api_request(queue_url)
+    
+    return queue_data
+
+def parse_queue_tuples(raw_queue_data):
+    """Convert queue JSON into database-friendly tuples for queue IDs and names."""
+    cleaned_queue_data = []
+    
+    for queue in raw_queue_data:
+        queueid = queue['queueId']
+        map_name = queue['map']
+        queue_name = queue['description']
+        
+        cleaned_queue_data.append((queueid, map_name, queue_name))
+    
+    return cleaned_queue_data
+
 def fetch_item_data():
     """Fetch the current item data from Data Dragon."""
     game_version = api_request("https://ddragon.leagueoflegends.com/api/versions.json")[0]
@@ -124,7 +144,7 @@ def parse_match_tuples(match_data):
         match_id,
         match_data['gameCreation'],
         match_data['gameDuration'],
-        match_data['gameMode'],
+        match_data['queueId'],
         match_data['gameVersion']
     )
 

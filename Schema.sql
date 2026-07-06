@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS participant_items;
 DROP TABLE IF EXISTS item_tags;
 DROP TABLE IF EXISTS items;
 DROP TABLE IF EXISTS match_participants;
+DROP TABLE IF EXISTS queue_ids;
 DROP TABLE IF EXISTS champion_tags;
 DROP TABLE IF EXISTS champions;
 DROP TABLE IF EXISTS matches;
@@ -20,7 +21,7 @@ CREATE TABLE matches (
   matchid varchar(14) PRIMARY KEY,
   match_time bigint, 
   duration float,
-  gamemode varchar(32),
+  queueid varchar(32),
   gameversion varchar(30)
   );
   
@@ -34,12 +35,19 @@ Create TABLE champion_tags (
   championid INT REFERENCES champions(championid),
   champion_tag varchar(20)
   );
+
+CREATE TABLE queue_ids(
+  queueid INT PRIMARY KEY,
+  queue_name varchar(100),
+  queue_description varchar(500)
+  );
   
 Create TABLE match_participants (
   participantid varchar(92) PRIMARY KEY, --participantid is matchid and playerid concatenated 
   puuid varchar(78) REFERENCES players(puuid),
   matchid varchar(14) REFERENCES matches(matchid),
   championid INT REFERENCES champions(championid),
+  queueid INT REFERENCES queue_ids(queueid),
   participant_role varchar(10),
   gold_earned INT,
   damage_dealt_to_champions INT,
@@ -67,3 +75,5 @@ CREATE TABLE participant_items(
   itemid INT REFERENCES items(itemid),
   item_slot INT
   );
+
+

@@ -214,6 +214,41 @@ class database_pipeline:
                 cursor.close()
             except Exception:
                 pass
+    
+    def upsert_queue_ids_table(self, queue_tuples):
+        cursor = self.conn.cursor()
+        try:
+            cursor.fast_executemany = True
+
+            insert_first_query = """
+            DROP TABLE IF EXISTS #TempQueue_Ids;
+
+            CREATE TABLE #TempQueue_Ids (
+                queueid INT PRIMARY KEY,
+                queue_name NVARCHAR(100),
+                queue_description NVARCHAR(500)
+            )
+            """
+            cursor.execute(insert_first_query)
+
+            insert_temp_query = "INSERT INTO #TempQueue_Ids (queueid, queue_name, queue_description) VALUES (?, ?, ?)"
+            cursor.executemany(insert_temp_query, queue_tuples)
+
+            insert_final_query = """
+            INSERT INTO QUEUE_IDS (queueid, queue_name, queue_description)
+            SELECT t.queueid, t.queue_name, t.queue_description
+            FROM #TempQueue_Ids t
+            LEFT JOIN QUEUE_IDS q ON t.queueid = q.queueid
+            WHERE q.queueid IS NULL
+            """
+            cursor.execute(insert_final_query)
+        except pyodbc.Error as e:
+            self.handle_error(e)
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
 
     def upsert_players_table(self, player_tuples):
         cursor = self.conn.cursor()
@@ -272,22 +307,22 @@ class database_pipeline:
                 matchid varchar(14) PRIMARY KEY,
                 match_time BIGINT,
                 duration float,
-                gamemode varchar(20),
+                queueid varchar(32),
                 gameversion varchar(30)
             )
             """
             cursor.execute(insert_first_query)
 
             insert_temp_query = """
-            INSERT INTO #TempMatches (matchid, match_time, duration, gamemode, gameversion)
+            INSERT INTO #TempMatches (matchid, match_time, duration, queueid, gameversion)
             VALUES (?, ?, ?, ?, ?)
             """
             formatted_data = list(match_tuples)
             cursor.executemany(insert_temp_query, formatted_data)
 
             insert_final_query = """
-            INSERT INTO MATCHES (matchid, match_time, duration, gamemode, gameversion)
-            SELECT t.matchid, t.match_time, t.duration, t.gamemode, t.gameversion
+            INSERT INTO MATCHES (matchid, match_time, duration, queueid, gameversion)
+            SELECT t.matchid, t.match_time, t.duration, t.queueid, t.gameversion
             FROM #TempMatches t
             LEFT JOIN MATCHES m ON t.matchid = m.matchid
             WHERE m.matchid IS NULL
