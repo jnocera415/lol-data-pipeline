@@ -12,8 +12,9 @@ logging.basicConfig(
 
 
 def update_static_data():
-    # Fetchs items and champions infomation (with respected tags) from riot and upserts into your database
-    # Although labed "static", champoins could be add and item stats changed per game version
+    """Fetch the latest static League data and store it in the database."""
+    # Fetch item and champion information, including tags, from Riot and upsert it into the database.
+    # Although labeled as static, champions and item stats can change between patches.
     raw_champion_data = fetch_raw_champion_data()
     champion_tuples, champion_tag_tuples = parse_champion_tuples(raw_champion_data)
     raw_item_data = fetch_item_data()
@@ -26,6 +27,7 @@ def update_static_data():
     my_pipeline.commit()
 
 def send_match_info(puuid, entire = False):
+    """Fetch and store a player's recent matches in batches."""
     game_count_position = 0
     number_of_games_per_batch = 100 if entire else 20
     matchids_in_database = my_pipeline.get_match_ids_by_puuid(puuid)
@@ -34,6 +36,7 @@ def send_match_info(puuid, entire = False):
         matchids = [matchid for matchid in matchids if matchid not in matchids_in_database]
         if not matchids:
             break
+        # Prepare empty batch lists before collecting the current round of data.
         batch_match_tuples = []
         batch_player_tuples = []
         batch_match_participant_tuples = []
@@ -61,6 +64,7 @@ def send_match_info(puuid, entire = False):
             break
 
 def send_entire_history(list_of_players):
+    """Process the full match history for each player in the provided list."""
     for player in list_of_players:
         puuid = fetch_puuid(api_key, player[0], player[1])
         logging.info(f"Getting {player[0]}'s entire match history")
@@ -77,6 +81,7 @@ password = os.getenv("DB_PASSWORD")
 
 my_pipeline = database_pipeline.database_pipeline(driver, server, database, username, password)
 my_pipeline.connect()
+
 update_static_data()
 
 list_of_players = [('Papa Jonathan', '1337'),
@@ -94,6 +99,6 @@ list_of_players = [('Papa Jonathan', '1337'),
 update_static_data()
 send_entire_history(list_of_players)
 
-for i in range(100):
+for i in range(10):
     puuid = my_pipeline.get_puuid()
     send_match_info(puuid)

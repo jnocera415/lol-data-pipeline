@@ -40,13 +40,14 @@ Create TABLE match_participants (
   puuid varchar(78) REFERENCES players(puuid),
   matchid varchar(14) REFERENCES matches(matchid),
   championid INT REFERENCES champions(championid),
-  lane varchar(10),
+  participant_role varchar(10),
   gold_earned INT,
   damage_dealt_to_champions INT,
   total_healing INT,
   kills INT,
   Deaths INT,
   Assists INT,
+  Vision_Score INT,
   Win BIT
   );
  

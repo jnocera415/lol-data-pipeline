@@ -10,6 +10,8 @@ logging.basicConfig(
 )
 
 class database_pipeline:
+    """Handles SQL Server connections and bulk upserts for pipeline data."""
+
     def __init__(self, driver, server, database, username, password):
         self.driver = driver
         self.server = server
@@ -19,6 +21,7 @@ class database_pipeline:
         self.connected = False
 
     def handle_error(self, e):
+        """Convert pyodbc errors into readable log messages and retry behavior."""
         error_code = e.args[0]
         error_explained = e.args[1] if len(e.args) > 1 else str(e)
         match error_code:
@@ -39,6 +42,7 @@ class database_pipeline:
                 return False
 
     def connect(self):
+        """Connect to SQL Server with a few retry attempts for transient failures."""
         retries = 5
         attempt = 0
         connection_string = (
@@ -75,6 +79,7 @@ class database_pipeline:
         try:
             cursor.fast_executemany = True
 
+            # Create a temporary staging table for the incoming item data.
             insert_first_query = """
             DROP TABLE IF EXISTS #TempItems;
 
@@ -86,9 +91,11 @@ class database_pipeline:
             """
             cursor.execute(insert_first_query)
 
+            # Load the staged rows into the temporary table.
             insert_temp_query = "INSERT INTO #TempItems (itemid, item_name, gold_cost) VALUES (?, ?, ?)"
             cursor.executemany(insert_temp_query, item_tuples)
 
+            # Insert only rows that are not already present in the target table.
             insert_final_query = """
             INSERT INTO ITEMS (itemid, item_name, gold_cost)
             SELECT t.itemid, t.item_name, t.gold_cost
@@ -294,6 +301,7 @@ class database_pipeline:
             except Exception:
                 pass
     def get_puuid(self):
+        """Return one player whose history needs to be refreshed."""
         cursor = self.conn.cursor()
         current_date = datetime.now()
         try:
@@ -315,6 +323,7 @@ class database_pipeline:
                 pass
 
     def get_match_ids_by_puuid(self, puuid):
+        """Fetch match IDs for a player and mark that player as recently processed."""
         cursor = self.conn.cursor()
         try:
             query = """
@@ -344,12 +353,14 @@ class database_pipeline:
                 pass
 
     def upsert_match_participants_table(self, match_participant_tuples):
+        """Bulk insert participant rows into the staging table and merge new ones."""
         if not match_participant_tuples:
             return
         cursor = self.conn.cursor()
         try:
             cursor.fast_executemany = True
 
+            # Create a temporary table for match participant data before merging.
             insert_first_query = """
             DROP TABLE IF EXISTS #TempMatch_Participants;
 
@@ -358,33 +369,36 @@ class database_pipeline:
                 puuid varchar(78),
                 matchid varchar(14),
                 championid INT,
-                lane varchar(10),
+                participant_role varchar(10),
                 gold_earned INT,
                 damage_dealt_to_champions INT,
                 total_healing INT,
                 kills INT,
                 Deaths INT,
                 Assists INT,
+                Vision_Score INT,
                 Win BIT
             )
             """
             cursor.execute(insert_first_query)
+            # Load the participant rows into the temporary staging table.
             insert_temp_query = """
             INSERT INTO #TempMatch_Participants (
-                participantid, puuid, matchid, championid, lane, gold_earned,
-                damage_dealt_to_champions, total_healing, kills, deaths, assists, win
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                participantid, puuid, matchid, championid, participant_role, gold_earned,
+                damage_dealt_to_champions, total_healing, kills, deaths, assists, vision_score, win
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             formatted_data = list({mp[0]: mp for mp in match_participant_tuples}.values())
             cursor.executemany(insert_temp_query, formatted_data)
+            # Insert only participants that are not already in the final table.
             insert_final_query = """
             INSERT INTO MATCH_PARTICIPANTS (
-                participantid, puuid, matchid, championid, lane, gold_earned,
-                damage_dealt_to_champions, total_healing, kills, deaths, assists, win
+                participantid, puuid, matchid, championid, participant_role, gold_earned,
+                damage_dealt_to_champions, total_healing, kills, deaths, assists, vision_score, win
             )
             SELECT
-                t.participantid, t.puuid, t.matchid, t.championid, t.lane, t.gold_earned,
-                t.damage_dealt_to_champions, t.total_healing, t.kills, t.deaths, t.assists, t.win
+                t.participantid, t.puuid, t.matchid, t.championid, t.participant_role, t.gold_earned,
+                t.damage_dealt_to_champions, t.total_healing, t.kills, t.deaths, t.assists, t.vision_score, t.win
             FROM #TempMatch_Participants t
             LEFT JOIN MATCH_PARTICIPANTS mp ON t.participantid = mp.participantid
             WHERE mp.participantid IS NULL

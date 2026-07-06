@@ -8,7 +8,7 @@ logging.basicConfig(
 )
 
 def api_request(url):
-    
+    """Send a request to the Riot API and handle common rate-limit and auth responses."""
     while True:
         resp = requests.get(url)
         
@@ -36,7 +36,7 @@ def api_request(url):
             return None
         
 def fetch_raw_champion_data():
-    
+    """Fetch the current champion data from Data Dragon."""
     game_version = api_request("https://ddragon.leagueoflegends.com/api/versions.json")[0]
     champion_url = "https://ddragon.leagueoflegends.com/cdn/" + str(game_version) + "/data/en_US/champion.json"
     champion_data = api_request(champion_url)['data']
@@ -44,7 +44,7 @@ def fetch_raw_champion_data():
     return champion_data
 
 def parse_champion_tuples(raw_champion_data):
-    
+    """Convert champion JSON into database-friendly tuples for champions and tags."""
     cleaned_champion_data = []
     cleaned_champion_tags = []
     
@@ -64,7 +64,7 @@ def parse_champion_tuples(raw_champion_data):
     return cleaned_champion_data, cleaned_champion_tags
 
 def fetch_item_data():
-    
+    """Fetch the current item data from Data Dragon."""
     game_version = api_request("https://ddragon.leagueoflegends.com/api/versions.json")[0]
     item_url = "https://ddragon.leagueoflegends.com/cdn/" + str(game_version) + "/data/en_US/item.json"
     item_data = api_request(item_url)['data']
@@ -72,7 +72,7 @@ def fetch_item_data():
     return item_data
 
 def parse_item_tuples(raw_item_data):
-    
+    """Convert item JSON into database-friendly tuples for items and tags."""
     cleaned_item_data = []
     cleaned_item_tags = []
     
@@ -92,28 +92,28 @@ def parse_item_tuples(raw_item_data):
     return cleaned_item_data, cleaned_item_tags
 
 def fetch_puuid(api_key, gamename, tagline):
-    
+    """Look up a player's Riot PUUID by their in-game name and tagline."""
     puuid_url = f'https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/' + gamename.replace(' ', '%20') + '/' + tagline.replace('#', '') + '?api_key=' + api_key
     user_puuid = api_request(puuid_url)['puuid']
     
     return user_puuid
 
 def fetch_matchids(api_key, puuid, start = 0, count = 20):
-        
+    """Fetch a list of recent match IDs for a player."""
     matchid_url = 'https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/' + puuid + '/ids?start=' + str(start) + '&count=' + str(count) + '&api_key=' + api_key
     matchids = api_request(matchid_url)
 
     return matchids
 
 def fetch_match_data(matchid, api_key):
-    
+    """Retrieve the detailed info for a single match."""
     match_stats_url = 'https://americas.api.riotgames.com/lol/match/v5/matches/' + matchid + '?api_key=' + api_key
     match_data = api_request(match_stats_url)['info']
     return match_data
 
 def parse_match_tuples(match_data):
-    
-    #This Block of Code grabs the 'match' data
+    """Transform match JSON into tuples for matches, players, participants, and items."""
+    # This block builds the base match record.
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     raw_game_id = match_data['gameId']       
     platform_id = match_data['platformId']    
@@ -136,7 +136,7 @@ def parse_match_tuples(match_data):
         
         participant_data = match_data['participants'][i]
 
-    #This Block of Code grabs the 'player' data
+    # This block builds player rows for each participant.
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
               
         cleaned_player_tuple = (
@@ -148,7 +148,7 @@ def parse_match_tuples(match_data):
         
         player_tuples.append(cleaned_player_tuple)
     
-    #This Block of Code grabs the 'match_participants' data
+    # This block builds the participant rows for the database.
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
         participantid = str(participant_data['puuid']) + str(match_id)
@@ -158,13 +158,14 @@ def parse_match_tuples(match_data):
             participant_data['puuid'],
             match_id,
             participant_data['championId'],
-            participant_data['lane'],
+            participant_data['teamPosition'],
             participant_data['goldEarned'],
             participant_data['totalDamageDealtToChampions'],
             participant_data['totalHeal'],
             participant_data['kills'],
             participant_data['deaths'],
             participant_data['assists'],
+            participant_data['visionScore'],
             1 if participant_data['win'] == True else 0
         )
         if match_data['gameMode'] == 'STRAWBERRY':  
@@ -184,7 +185,7 @@ def parse_match_tuples(match_data):
         )
         participants_tuples.append(cleaned_participant_tuple)
         
-        #This Block of Code grabs the 'participant_items' data
+        # This block gathers any items owned by the participant.
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if match_data['gameMode'] == 'STRAWBERRY':
             continue
