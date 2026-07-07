@@ -202,6 +202,7 @@ def parse_match_tuples(match_data):
             None,
             None,
             None,
+            None,
             1 if participant_data['win'] == True else 0
         )
         participants_tuples.append(cleaned_participant_tuple)
