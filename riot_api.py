@@ -78,7 +78,13 @@ def parse_queue_tuples(raw_queue_data):
         queueid = queue['queueId']
         map_name = queue['map']
         queue_name = queue['description']
-        
+
+        #Riot has a bug where 710 is listed as a queue ID but not given in the api. Data analysis shows that 710 is actually the same as 700, so we will treat it as such.
+        #Riot plz fix
+        if queueid == 710:      
+            queueid = 700
+
+
         cleaned_queue_data.append((queueid, map_name, queue_name))
     
     cleaned_queue_data.append((1750, 'Rings of Wrath', 'Arena'))
@@ -153,8 +159,7 @@ def parse_match_tuples(match_data):
     participants_tuples = []
     item_tuples = []
     
-    for i in range(len(match_data['participants'])):
-        
+    for i in range(len(match_data['participants'])):     
         participant_data = match_data['participants'][i]
 
     # This block builds player rows for each participant.

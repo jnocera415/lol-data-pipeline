@@ -7,7 +7,7 @@ import logging
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s\n%(message)s"
 )
 
 
@@ -33,6 +33,7 @@ def send_match_info(puuid, entire = False):
     """Fetch and store a player's recent matches in batches."""
     game_count_position = 0
     number_of_games_per_batch = 100 if entire else 20
+    logging.info(f"Fetching match data\nPUUID: {puuid}\nEntire history: {entire}.")
     matchids_in_database = my_pipeline.get_match_ids_by_puuid(puuid)
     while True:
         matchids = fetch_matchids(api_key, puuid, game_count_position, number_of_games_per_batch)
@@ -56,10 +57,15 @@ def send_match_info(puuid, entire = False):
             batch_participant_item_tuples.extend(participant_item_tuples)
 
         logging.info(f"Atempting to send current batch of {len(batch_match_tuples)} matches to the database." )
+        logging.info(f"Upserting players table")
         my_pipeline.upsert_players_table(batch_player_tuples)
+        logging.info(f"Upserting matches table")
         my_pipeline.upsert_matches_table(batch_match_tuples)
+        logging.info(f"Upserting match participants table")
         my_pipeline.upsert_match_participants_table(batch_match_participant_tuples)
+        logging.info(f"Upserting participant items")
         my_pipeline.upsert_participant_items_table(batch_participant_item_tuples)
+        logging.info(f"Committing batch to database")
         my_pipeline.commit()
         logging.info('Batch sent!')
         game_count_position += number_of_games_per_batch
@@ -85,8 +91,6 @@ password = os.getenv("DB_PASSWORD")
 my_pipeline = database_pipeline.database_pipeline(driver, server, database, username, password)
 my_pipeline.connect()
 
-update_static_data()
-
 list_of_players = [('Papa Jonathan', '1337'),
                    ('Bloo', 'LoyUM'),
                    ('BOYNEXTDOOR', 'BND'),
@@ -103,13 +107,14 @@ list_of_players = [('Papa Jonathan', '1337'),
                    ('Phoon', 'Boo'),
                    ('roelaid','NA1'),
                    ('cloud', '9927')]
-
+'''
 update_static_data()
 send_entire_history(list_of_players)
 logging.info("All selected players match histories have been processed and stored in the database")
+'''
 
 for i in range(50):
     puuid = my_pipeline.get_puuid()
     send_match_info(puuid)
 
-my_pipeline.close()
+my_pipeline.disconnect()

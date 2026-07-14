@@ -43,6 +43,7 @@ class database_pipeline:
 
     def connect(self):
         """Connect to SQL Server with a few retry attempts for transient failures."""
+        logging.info("Attempting to connect to the database...")
         retries = 5
         attempt = 0
         connection_string = (
@@ -79,7 +80,6 @@ class database_pipeline:
         try:
             cursor.fast_executemany = True
 
-            # Create a temporary staging table for the incoming item data.
             insert_first_query = """
             DROP TABLE IF EXISTS #TempItems;
 
@@ -91,19 +91,30 @@ class database_pipeline:
             """
             cursor.execute(insert_first_query)
 
-            # Load the staged rows into the temporary table.
             insert_temp_query = "INSERT INTO #TempItems (itemid, item_name, gold_cost) VALUES (?, ?, ?)"
             cursor.executemany(insert_temp_query, item_tuples)
 
-            # Insert only rows that are not already present in the target table.
-            insert_final_query = """
+            insert_query = """
             INSERT INTO ITEMS (itemid, item_name, gold_cost)
             SELECT t.itemid, t.item_name, t.gold_cost
             FROM #TempItems t
             LEFT JOIN ITEMS i ON t.itemid = i.itemid
             WHERE i.itemid IS NULL
             """
-            cursor.execute(insert_final_query)
+            cursor.execute(insert_query)
+
+            update_query = """
+            UPDATE i
+            SET i.item_name = t.item_name,
+                i.gold_cost = t.gold_cost
+            FROM ITEMS i
+            JOIN #TempItems t ON i.itemid = t.itemid
+            WHERE (
+                i.item_name <> t.item_name
+                OR i.gold_cost <> t.gold_cost
+            )
+            """
+            cursor.execute(update_query)
         except pyodbc.Error as e:
             self.handle_error(e)
         finally:
@@ -165,14 +176,27 @@ class database_pipeline:
             insert_temp_query = "INSERT INTO #TempChampions (championid, champion_name, champion_title) VALUES (?, ?, ?)"
             cursor.executemany(insert_temp_query, champion_tuples)
 
-            insert_final_query = """
+            insert_query = """
             INSERT INTO CHAMPIONS (championid, champion_name, champion_title)
             SELECT t.championid, t.champion_name, t.champion_title
             FROM #TempChampions t
             LEFT JOIN CHAMPIONS c ON t.championid = c.championid
             WHERE c.championid IS NULL
             """
-            cursor.execute(insert_final_query)
+            cursor.execute(insert_query)
+
+            update_query = """
+            UPDATE c
+            SET c.champion_name = t.champion_name,
+                c.champion_title = t.champion_title
+            FROM CHAMPIONS c
+            JOIN #TempChampions t ON c.championid = t.championid
+            WHERE (
+                c.champion_name <> t.champion_name
+                OR c.champion_title <> t.champion_title
+            )
+            """
+            cursor.execute(update_query)
         except pyodbc.Error as e:
             self.handle_error(e)
         finally:
@@ -234,14 +258,27 @@ class database_pipeline:
             insert_temp_query = "INSERT INTO #TempQueue_Ids (queueid, queue_name, queue_description) VALUES (?, ?, ?)"
             cursor.executemany(insert_temp_query, queue_tuples)
 
-            insert_final_query = """
+            insert_query = """
             INSERT INTO QUEUE_IDS (queueid, queue_name, queue_description)
             SELECT t.queueid, t.queue_name, t.queue_description
             FROM #TempQueue_Ids t
             LEFT JOIN QUEUE_IDS q ON t.queueid = q.queueid
             WHERE q.queueid IS NULL
             """
-            cursor.execute(insert_final_query)
+            cursor.execute(insert_query)
+
+            update_query = """
+            UPDATE q
+            SET q.queue_name = t.queue_name,
+                q.queue_description = t.queue_description
+            FROM QUEUE_IDS q
+            JOIN #TempQueue_Ids t ON q.queueid = t.queueid
+            WHERE (
+                q.queue_name <> t.queue_name
+                OR q.queue_description <> t.queue_description
+            )
+            """
+            cursor.execute(update_query)
         except pyodbc.Error as e:
             self.handle_error(e)
         finally:
@@ -272,21 +309,28 @@ class database_pipeline:
             formatted_data = list({p[0]: p + (None,) for p in player_tuples}.values())
             cursor.executemany(insert_temp_query, formatted_data)
 
-            insert_final_query = """
-            MERGE PLAYERS AS target
-            USING #TempPlayers AS source
-            ON (target.puuid = source.puuid)
-
-            WHEN MATCHED AND (target.gamename <> source.gamename OR target.tagline <> source.tagline) THEN
-            UPDATE SET 
-            target.gamename = source.gamename,
-            target.tagline = source.tagline
-
-            WHEN NOT MATCHED THEN
-            INSERT (puuid, gamename, tagline, track_history, last_date_processed)
-            VALUES (source.puuid, source.gamename, source.tagline, source.track_history, source.last_date_processed);
+            insert_query = """
+            INSERT INTO PLAYERS (puuid, gamename, tagline, track_history, last_date_processed)
+            SELECT t.puuid, t.gamename, t.tagline, t.track_history, t.last_date_processed
+            FROM #TempPlayers t
+            LEFT JOIN PLAYERS p ON p.puuid = t.puuid
+            WHERE p.puuid IS NULL
             """
-            cursor.execute(insert_final_query)
+            cursor.execute(insert_query)
+
+            update_query = """
+            UPDATE p
+            SET p.gamename = t.gamename,
+                p.tagline = t.tagline
+            FROM PLAYERS p
+            JOIN #TempPlayers t ON p.puuid = t.puuid
+            WHERE p.puuid IS NOT NULL
+              AND (
+                  p.gamename <> t.gamename
+                  OR p.tagline <> t.tagline
+              )
+            """
+            cursor.execute(update_query)
         except pyodbc.Error as e:
             self.handle_error(e)
         finally:
@@ -320,14 +364,31 @@ class database_pipeline:
             formatted_data = list(match_tuples)
             cursor.executemany(insert_temp_query, formatted_data)
 
-            insert_final_query = """
+            insert_query = """
             INSERT INTO MATCHES (matchid, match_time, duration, queueid, gameversion)
             SELECT t.matchid, t.match_time, t.duration, t.queueid, t.gameversion
             FROM #TempMatches t
             LEFT JOIN MATCHES m ON t.matchid = m.matchid
             WHERE m.matchid IS NULL
             """
-            cursor.execute(insert_final_query)
+            cursor.execute(insert_query)
+
+            update_query = """
+            UPDATE m
+            SET m.match_time = t.match_time,
+                m.duration = t.duration,
+                m.queueid = t.queueid,
+                m.gameversion = t.gameversion
+            FROM MATCHES m
+            JOIN #TempMatches t ON m.matchid = t.matchid
+            WHERE (
+                m.match_time <> t.match_time
+                OR m.duration <> t.duration
+                OR m.queueid <> t.queueid
+                OR m.gameversion <> t.gameversion
+            )
+            """
+            cursor.execute(update_query)
         except pyodbc.Error as e:
             self.handle_error(e)
         finally:
@@ -337,6 +398,7 @@ class database_pipeline:
                 pass
     def get_puuid(self):
         """Return one player whose history needs to be refreshed."""
+        logging.info("Fetching a player PUUID that needs to be processed...")
         cursor = self.conn.cursor()
         current_date = datetime.now()
         try:
@@ -359,23 +421,24 @@ class database_pipeline:
 
     def get_match_ids_by_puuid(self, puuid):
         """Fetch match IDs for a player and mark that player as recently processed."""
+
         cursor = self.conn.cursor()
+        current_date = datetime.now()
         try:
             query = """
-            SELECT DISTINCT m.matchid
-            FROM MATCHES m
-            JOIN MATCH_PARTICIPANTS mp ON m.matchid = mp.matchid
+            SELECT DISTINCT mp.matchid
+            FROM MATCH_PARTICIPANTS mp
             WHERE mp.puuid = ?
             """
-            cursor.execute(query, puuid)
-            matchids =  [row.matchid for row in cursor.fetchall()]
+            cursor.execute(query, (puuid,))
+            matchids = [row.matchid for row in cursor.fetchall()]
+
             query = """
             UPDATE PLAYERS
             SET last_date_processed = ?
             WHERE PUUID = ?
             """
-            current_date = datetime.now()
-            cursor.execute(query, current_date, puuid)
+            cursor.execute(query, (current_date, puuid))
             self.commit()
             return matchids
         except pyodbc.Error as e:
