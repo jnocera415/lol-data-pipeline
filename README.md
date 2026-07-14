@@ -62,13 +62,14 @@ python main.py
 
 ```mermaid
 erDiagram
-    PLAYERS ||--o{ MATCH_PARTICIPANTS : "plays in"
+    PLAYERS ||--o{ MATCH_PARTICIPANTS : "has"
     MATCHES ||--o{ MATCH_PARTICIPANTS : "contains"
-    CHAMPIONS ||--o{ MATCH_PARTICIPANTS : "chosen in"
-    CHAMPIONS ||--o{ CHAMPION_TAGS : "categorized by"
-    ITEMS ||--o{ ITEM_TAGS : "categorized by"
+    CHAMPIONS ||--o{ MATCH_PARTICIPANTS : "played as"
+    QUEUE_IDS ||--o{ MATCH_PARTICIPANTS : "classified by"
+    CHAMPIONS ||--o{ CHAMPION_TAGS : "tagged as"
+    ITEMS ||--o{ ITEM_TAGS : "tagged as"
+    MATCH_PARTICIPANTS ||--o{ PARTICIPANT_ITEMS : "contains"
     ITEMS ||--o{ PARTICIPANT_ITEMS : "equipped in"
-    MATCH_PARTICIPANTS ||--o{ PARTICIPANT_ITEMS : "buys"
 
     PLAYERS {
         varchar puuid PK
@@ -82,22 +83,8 @@ erDiagram
         varchar matchid PK
         bigint match_time
         float duration
-        varchar gamemode
+        varchar queueid
         varchar gameversion
-    }
-
-    MATCH_PARTICIPANTS {
-        varchar matchid PK, FK
-        varchar puuid PK, FK
-        int championid FK
-        varchar lane
-        int gold_earned
-        int damage_dealt_to_champions
-        int total_healing
-        int kills
-        int deaths
-        int assists
-        bit win
     }
 
     CHAMPIONS {
@@ -111,9 +98,32 @@ erDiagram
         varchar champion_tag
     }
 
+    QUEUE_IDS {
+        int queueid PK
+        varchar queue_name
+        varchar queue_description
+    }
+
+    MATCH_PARTICIPANTS {
+        varchar participantid PK
+        varchar puuid FK
+        varchar matchid FK
+        int championid FK
+        int queueid FK
+        varchar participant_role
+        int gold_earned
+        int damage_dealt_to_champions
+        int total_healing
+        int kills
+        int deaths
+        int assists
+        int vision_score
+        bit win
+    }
+
     ITEMS {
         int itemid PK
-        nvarchar item_name
+        varchar item_name
         int gold_cost
     }
 
@@ -123,8 +133,7 @@ erDiagram
     }
 
     PARTICIPANT_ITEMS {
-        varchar matchid FK
-        varchar puuid FK
+        varchar participantid FK
         int itemid FK
         int item_slot
     }
