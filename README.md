@@ -1,6 +1,24 @@
 # LoL Data Pipeline
 
-A Python project for fetching League of Legends data and storing it in a database.
+## Overview & Motivation
+
+An end-to-end data pipeline that extracts match history and player statistics from the Riot Games API, processes the raw JSON, and loads it into a structured SQL database for analytics.
+
+The two main motivations for this project were my passion for the game and my desire to learn how to integrate different software components to build a fully automated data pipeline—moving beyond static Excel sheets to handle dynamic, live-source data.
+
+In this project, I used **Python** to extract, parse, and upsert data from the **Riot Games API** into an **Azure SQL Database**. For the analytics layer, I connected **Power BI** to create interactive dashboards tracking player and match telemetry.
+
+### Data Flow Architecture
+
+[GitHub Actions] (Daily Trigger)
+        │
+        ▼
+   [Riot API] ──(Python: Extract)──> [Data Transformation] ──(Python/pyodbc: Load)──> [Azure SQL Database] ──> [Power BI]
+
+### ⚙️ Orchestration & Automation
+* **Automated Scheduling**: The pipeline is fully automated using **GitHub Actions** (`.github/workflows/main.yml`).[cite: 1]
+* **Execution Frequency**: Configured via a cron job to trigger a headless execution once every 24 hours, ensuring the database is continuously updated with fresh match telemetry.
+* **Secrets Management**: Sensitive API keys and database connection strings are securely injected at runtime using GitHub Repository Secrets, keeping the `.env` production-safe.
 
 ## Setup
 
@@ -41,6 +59,11 @@ A Python project for fetching League of Legends data and storing it in a databas
    ```bash
    pip install -r requirements.txt
    ```
+
+4. Initialize Database Schema
+
+Before running the pipeline, initialize your Azure SQL Database using the provided schema script:
+* Execute the SQL commands inside `Schema.sql` using **SQL Server Management Studio (SSMS)**, **Azure Data Studio**, or the **VS Code SQL Server extension** to generate the tables and relationships[cite: 1].
 
 ## Usage
 
