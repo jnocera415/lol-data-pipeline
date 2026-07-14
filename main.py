@@ -107,11 +107,10 @@ list_of_players = [('Papa Jonathan', '1337'),
                    ('Phoon', 'Boo'),
                    ('roelaid','NA1'),
                    ('cloud', '9927')]
-'''
+
 update_static_data()
 send_entire_history(list_of_players)
 logging.info("All selected players match histories have been processed and stored in the database")
-'''
 
 for i in range(50):
     puuid = my_pipeline.get_puuid()
