@@ -12,14 +12,10 @@ In this project, I used **Python** to extract, parse, and upsert data from the *
 
 ```mermaid
 graph LR
-    A[GitHub Actions <br><i>Daily Cron Trigger</i>] --> B(Riot API)
+    A[GitHub Actions - Daily Trigger] --> B(Riot API)
     B -->|Python: Extract| C[Data Transformation]
-    C -->|Python/pyodbc: Load| D[(Azure SQL Database)]
+    C -->|Python/pyodbc: Load| D[Azure SQL Database]
     D --> E[Power BI Dashboard]
-
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style D fill:#bbf,stroke:#333,stroke-width:2px
-    style E fill:#f96,stroke:#333,stroke-width:2px
 
 ### ⚙️ Orchestration & Automation
 * **Automated Scheduling**: The pipeline is fully automated using **GitHub Actions** (`.github/workflows/main.yml`).[cite: 1]
