@@ -77,6 +77,8 @@ python main.py
 
 ## Project Structure
 
+- `.github/workflows/main.yml` - GitHub Actions cron job configuration
+- `.env.example` - Template for required environment variables
 - `main.py` - Main entry point
 - `riot_api.py` - Riot API integration
 - `database_pipeline.py` - Database operations
