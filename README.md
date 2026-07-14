@@ -16,6 +16,7 @@ graph LR
     B -->|Python: Extract| C[Data Transformation]
     C -->|Python/pyodbc: Load| D[Azure SQL Database]
     D --> E[Power BI Dashboard]
+```
 
 ### ⚙️ Orchestration & Automation
 * **Automated Scheduling**: The pipeline is fully automated using **GitHub Actions** (`.github/workflows/main.yml`).[cite: 1]
