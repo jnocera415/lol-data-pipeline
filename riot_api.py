@@ -96,7 +96,6 @@ def fetch_item_data():
     game_version = api_request("https://ddragon.leagueoflegends.com/api/versions.json")[0]
     item_url = "https://ddragon.leagueoflegends.com/cdn/" + str(game_version) + "/data/en_US/item.json"
     item_data = api_request(item_url)['data']
-
     return item_data
 
 def parse_item_tuples(raw_item_data):
@@ -110,8 +109,10 @@ def parse_item_tuples(raw_item_data):
         item_name = raw_item_data[item]['name']
         gold_cost = raw_item_data[item]['gold']['total']
         item_tags = raw_item_data[item]['tags']
+        item_depth = raw_item_data[item].get('depth', None)
+        print(f'Item ID: {itemid}, Item Depth: {item_depth}')
         
-        cleaned_item_data.append((itemid, item_name, gold_cost))
+        cleaned_item_data.append((itemid, item_name, gold_cost, item_depth))
         
         for tag in item_tags:
             

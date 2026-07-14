@@ -66,7 +66,7 @@ graph LR
 4. Initialize Database Schema
 
 Before running the pipeline, initialize your Azure SQL Database using the provided schema script:
-* Execute the SQL commands inside `Schema.sql` using **SQL Server Management Studio (SSMS)**, **Azure Data Studio**, or the **VS Code SQL Server extension** to generate the tables and relationships[cite: 1].
+* Execute the SQL commands inside `Schema.sql` using **SQL Server Management Studio (SSMS)**, **Azure Data Studio**, or the **VS Code SQL Server extension** to generate the tables and relationships.
 
 ## Usage
 
@@ -153,6 +153,7 @@ erDiagram
         int itemid PK
         varchar item_name
         int gold_cost
+        int item_depth
     }
 
     ITEM_TAGS {

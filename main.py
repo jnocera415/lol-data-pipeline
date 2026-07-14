@@ -34,7 +34,7 @@ def send_match_info(puuid, entire = False):
     """Fetch and store a player's recent matches in batches."""
     game_count_position = 0
     number_of_games_per_batch = 100 if entire else 20
-    logging.info(f"Fetching match data\nPUUID: {puuid}\nEntire history: {entire}")
+    logging.info(f"Fetching match data\nPUUID: {puuid}")
     matchids_in_database = my_pipeline.get_match_ids_by_puuid(puuid)
     while True:
         matchids = fetch_matchids(api_key, puuid, game_count_position, number_of_games_per_batch)

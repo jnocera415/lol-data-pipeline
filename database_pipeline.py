@@ -87,17 +87,18 @@ class database_pipeline:
             CREATE TABLE #TempItems (
                 itemid INT PRIMARY KEY,
                 item_name NVARCHAR(200),
-                gold_cost INT
+                gold_cost INT,
+                item_depth INT
             )
             """
             cursor.execute(insert_first_query)
 
-            insert_temp_query = "INSERT INTO #TempItems (itemid, item_name, gold_cost) VALUES (?, ?, ?)"
+            insert_temp_query = "INSERT INTO #TempItems (itemid, item_name, gold_cost, item_depth) VALUES (?, ?, ?, ?)"
             cursor.executemany(insert_temp_query, item_tuples)
 
             insert_query = """
-            INSERT INTO ITEMS (itemid, item_name, gold_cost)
-            SELECT t.itemid, t.item_name, t.gold_cost
+            INSERT INTO ITEMS (itemid, item_name, gold_cost, item_depth)
+            SELECT t.itemid, t.item_name, t.gold_cost, t.item_depth
             FROM #TempItems t
             LEFT JOIN ITEMS i ON t.itemid = i.itemid
             WHERE i.itemid IS NULL
@@ -107,12 +108,14 @@ class database_pipeline:
             update_query = """
             UPDATE i
             SET i.item_name = t.item_name,
-                i.gold_cost = t.gold_cost
+                i.gold_cost = t.gold_cost,
+                i.item_depth = t.item_depth
             FROM ITEMS i
             JOIN #TempItems t ON i.itemid = t.itemid
             WHERE (
                 i.item_name <> t.item_name
                 OR i.gold_cost <> t.gold_cost
+                OR i.item_depth <> t.item_depth
             )
             """
             cursor.execute(update_query)

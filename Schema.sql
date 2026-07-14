@@ -68,7 +68,8 @@ ON players (last_date_processed, puuid);
 CREATE TABLE items(
   itemid INT PRIMARY KEY,
   item_name varchar(150),
-  gold_cost INT
+  gold_cost INT,
+  item_depth INT
   );
 
 CREATE TABLE item_tags(
