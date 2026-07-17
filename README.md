@@ -172,5 +172,5 @@ erDiagram
 
 The pipeline outputs to a dynamic, two-page Power BI dashboard providing deep telemetry on performance, champion pool trends, and historical metrics.
 
-![Dashboard Page 1 - Player Performance Overview](dashboard/League_Dashbard_Pg1.png)
-![Dashboard Page 2 - Match & Distribution Analytics](dashboard/League_Dashbard_Pg2.png)
+![Dashboard Page 1 - Player Performance Overview](dashboard/League_Dashboard_Pg1.png)
+![Dashboard Page 2 - Match & Distribution Analytics](dashboard/League_Dashboard_Pg2.png)
