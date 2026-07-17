@@ -18,7 +18,7 @@ graph LR
     D --> E[Power BI Dashboard]
 ```
 
-### ⚙️ Orchestration & Automation
+### Orchestration & Automation
 * **Automated Scheduling**: The pipeline is fully automated using **GitHub Actions** (`.github/workflows/main.yml`).[cite: 1]
 * **Execution Frequency**: Configured via a cron job to trigger a headless execution once every 24 hours, ensuring the database is continuously updated with fresh match telemetry.
 * **Secrets Management**: Sensitive API keys and database connection strings are securely injected at runtime using GitHub Repository Secrets, keeping the `.env` production-safe.
