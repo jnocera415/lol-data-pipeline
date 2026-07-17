@@ -107,7 +107,8 @@ list_of_players = [('Papa Jonathan', '1337'),
                    ('tailedbeastsky', 'b3wbs'),
                    ('Phoon', 'Boo'),
                    ('roelaid','NA1'),
-                   ('cloud', '9927')]
+                   ('cloud', '9927'),
+                   ('Debrisdeeznuts', 'NA1')]
 
 update_static_data()
 send_entire_history(list_of_players)
